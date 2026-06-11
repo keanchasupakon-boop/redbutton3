@@ -532,13 +532,17 @@
 <div id="screen-student" class="screen">
   <div class="student-layout">
     <div class="student-header">
-      <div class="student-avatar"><img id="s-avatar" src="" alt="avatar"></div>
-      <div class="student-name-info">
-        <div class="sname" id="s-name">Group Name</div>
-        <div class="sroom">Room <span id="s-room">----</span></div>
-      </div>
-      <div class="student-click-count" id="s-count">0</div>
+    <div class="student-avatar"><img id="s-avatar" src="" alt="avatar"></div>
+    <div class="student-name-info">
+      <div class="sname" id="s-name">Group Name</div>
+      <div class="sroom">Room <span id="s-room">----</span></div>
     </div>
+    <div class="student-click-count" id="s-count">0</div>
+    
+    <!-- 🟢 เพิ่มปุ่มกดออกจากห้องตรงนี้ครับ -->
+    <button class="btn-delete" style="position:relative; top:0; right:0; margin-left: 12px;" onclick="window.studentLeaveRoom()" title="ออกจากห้อง">✖</button>
+    
+  </div>
 
     <div class="student-arena">
       <div class="status-badge" id="s-status">⏳ Waiting for teacher…</div>
@@ -1023,6 +1027,23 @@ function showStudentResult() {
 }
 
 // ── SMASH ──
+// 🟢 ฟังก์ชันสำหรับให้นักเรียนกดออกจากห้องด้วยตัวเอง
+window.studentLeaveRoom = async () => {
+  if (confirm('ต้องการออกจากห้องเรียนเพื่อเริ่มใหม่ใช่หรือไม่?')) {
+    // 1. ลบชื่อตัวเองออกจากฐานข้อมูล (ครูจะได้เห็นว่าเราออกไปแล้ว)
+    if (currentRoom && currentGroupId) {
+      try {
+        await remove(getGroupRef(currentRoom, currentGroupId));
+      } catch(e) {
+        console.error("ลบข้อมูลไม่สำเร็จ", e);
+      }
+    }
+    // 2. ล้างความจำในตู้เซฟเบราว์เซอร์
+    localStorage.clear();
+    // 3. รีเฟรชหน้าเว็บเพื่อกลับไปหน้าแรกสุด
+    window.location.reload();
+  }
+};
 window.smash = () => {
   if (gamePhase !== 'playing') return;
   const btn = document.getElementById('big-btn');
