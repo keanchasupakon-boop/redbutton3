@@ -571,7 +571,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, set, get, update, onValue, remove, push, increment } 
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 // เพิ่มบรรทัดนี้เข้ามาเพื่อใช้ระบบล็อกอินแบบไม่ระบุตัวตน
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+// แก้ไขบรรทัด import auth ให้เป็นแบบนี้
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // ตรงนี้อย่าลืมเอา firebaseConfig ของโปรเจกต์ใหม่มาใส่นะครับ
 const firebaseConfig = {
@@ -865,7 +866,6 @@ window.handleJoin = async () => {
 };
 
 async function joinRoom(pin, name) {
-  // เช็คก่อนว่ามี currentUser หรือยัง ถ้ายังให้รอแป๊บนึง
   if (!auth.currentUser) {
     alert("กำลังเชื่อมต่อระบบรักษาความปลอดภัย โปรดรอสักครู่แล้วกดใหม่ครับ");
     return;
@@ -873,13 +873,18 @@ async function joinRoom(pin, name) {
 
   const gRef = push(getGroupsRef(pin));
   const gid = gRef.key;
-  const userUid = auth.currentUser.uid; // ตอนนี้มั่นใจได้ว่ามี UID แน่นอน
+  const userUid = auth.currentUser.uid; 
   
-  // บันทึก UID ลงไปด้วย
   await set(gRef, { name, clicks: 0, joinedAt: Date.now(), uid: userUid }); 
   
+  // 🟢 เพิ่ม 3 บรรทัดนี้ เพื่อจำห้องไว้ในเครื่องเด็ก
+  localStorage.setItem('savedRoomPin', pin);
+  localStorage.setItem('savedGroupId', gid);
+  localStorage.setItem('savedGroupName', name);
+
   currentRoom = pin;
   currentGroupId = gid;
+  // ... (โค้ดเดิม) ...
   currentGroupName = name;
   localCount = 0;
 
@@ -925,10 +930,19 @@ function listenStudent(pin, gid) {
     }
   });
 
-  onValue(getGroupRef(pin, gid), snap => {
+onValue(getGroupRef(pin, gid), snap => {
     const g = snap.val();
-    if (g) {
-      if (gamePhase !== 'playing' || g.clicks === 0) {
+    
+    // 🟢 เพิ่มการเช็คว่าโดนลบหรือยัง
+    if (!g) {
+      alert("ห้องเรียนถูกปิด หรือคุณถูกนำออกจากกลุ่ม");
+      localStorage.clear(); // ล้างความจำ
+      window.location.reload(); // เด้งกลับหน้าแรก
+      return;
+    }
+
+ if (g) {
+      if (gamePhase !== 'playing' || g.clicks === 0) { // ✅ เติม { ตรงนี้
         localCount = g.clicks || 0;
         lastSyncedCount = localCount;
         document.getElementById('s-count').textContent = localCount;
@@ -1003,17 +1017,23 @@ window.smash = () => {
   localCount++;
   document.getElementById('s-count').textContent = localCount;
 
-if (!syncInterval) {
+  if (!syncInterval) {
     syncInterval = setInterval(async () => {
       if (localCount > lastSyncedCount && currentRoom && currentGroupId) {
         const clicksToAdd = localCount - lastSyncedCount; 
+        
+        // 🟢 แก้บั๊ก: อัปเดตตัวเลข "ก่อน" สั่งบันทึกลงฐานข้อมูล 
+        // ป้องกันเด็กกดรัวๆ ระหว่างรอเน็ตส่งข้อมูลแล้วคะแนนหล่นหาย
+        lastSyncedCount += clicksToAdd; 
+
         try {
           await update(ref(db, `rooms/${currentRoom}/groups/${currentGroupId}`), {
             clicks: increment(clicksToAdd)
           });
-          lastSyncedCount = localCount;
         } catch(e) {
           console.error("ส่งคะแนนไม่ผ่าน:", e);
+          // 🟢 ถ้าเน็ตหลุด/ส่งพลาด คืนค่าให้มันส่งใหม่รอบหน้า
+          lastSyncedCount -= clicksToAdd; 
         }
       }
     }, 500);
@@ -1022,7 +1042,32 @@ if (!syncInterval) {
 
 // ── INIT SETUP ──
 window.addEventListener('load', () => {
-  // สั่งให้ล็อกอินแบบซ่อนรูปทันทีที่เปิดเว็บ
+  // 🟢 เพิ่มบล็อก onAuthStateChanged นี้เพื่อดักจับการรีเฟรชหน้า
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const savedPin = localStorage.getItem('savedRoomPin');
+      const savedGid = localStorage.getItem('savedGroupId');
+      const savedName = localStorage.getItem('savedGroupName');
+
+      if (savedPin && savedGid) {
+        // เช็คว่าห้องยังอยู่ไหม
+        const snap = await get(getGroupRef(savedPin, savedGid));
+        if (snap.exists()) {
+          // พากลับเข้าห้องทันทีไม่ต้องกด Join ใหม่
+          currentRoom = savedPin;
+          currentGroupId = savedGid;
+          currentGroupName = savedName;
+          document.getElementById('s-name').textContent = savedName;
+          document.getElementById('s-room').textContent = savedPin;
+          document.getElementById('s-avatar').src = avatarUrl(savedName);
+          window.showScreen('screen-student');
+          listenStudent(savedPin, savedGid);
+        } else {
+          localStorage.clear(); // ถ้าห้องไม่มีแล้วให้ลบทิ้ง
+        }
+      }
+    }
+  });
   signInAnonymously(auth).catch((error) => {
     console.error("ล็อกอินไม่สำเร็จ:", error);
   });
