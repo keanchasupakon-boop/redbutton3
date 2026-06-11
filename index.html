@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🔴 Button Bash – Classroom Battle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+  /* ── ปุ่มลบกลุ่ม (เตะออกจากห้อง) ── */
+  .btn-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(255, 34, 68, 0.15);
+    border: none;
+    color: var(--red);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 10;
+  }
+  .btn-delete:hover {
+    background: var(--red);
+    color: #fff;
+    transform: scale(1.1);
+  }
+
+  /* ── หน้าต่างประกาศผู้ชนะฝั่งครู ── */
+  #teacher-winner-overlay { z-index: 200; }
+  .winner-name-display {
+    font-family: var(--font-h);
+    font-size: clamp(3rem, 8vw, 4.5rem);
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(255,215,0,0.6);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  :root {
+    --red: #ff2244;
+    --red-dark: #c0001f;
+    --red-glow: #ff4466;
+    --gold: #ffd700;
+    --green: #00e676;
+    --bg: #0d0d1a;
+    --surface: #161628;
+    --surface2: #1e1e38;
+    --text: #f0f0ff;
+    --muted: #7777aa;
+    --accent: #7c3aed;
+    --cyan: #00d4ff;
+    --radius: 20px;
+    --font-h: 'Fredoka One', cursive;
+    --font-b: 'Nunito', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--font-b);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,34,68,0.10) 0%, transparent 60%);
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+  .screen.active { display: flex; }
+
+  /* ── LANDING ── */
+  #screen-landing { gap: 28px; text-align: center; }
+  .logo { font-family: var(--font-h); font-size: clamp(2.4rem, 8vw, 4rem); line-height: 1; }
+  .logo span { color: var(--red); text-shadow: 0 0 30px var(--red-glow), 0 4px 0 var(--red-dark); }
+  .tagline { color: var(--muted); font-size: 1rem; font-weight: 600; letter-spacing: 0.05em; }
+  .btn-group { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 400px; }
+
+  /* ── BUTTONS (UI) ── */
+  .btn {
+    font-family: var(--font-b);
+    font-weight: 800;
+    font-size: 1rem;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+    letter-spacing: 0.03em;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn-primary { background: var(--red); color: #fff; box-shadow: 0 6px 24px rgba(255,34,68,0.45); }
+  .btn-primary:hover { box-shadow: 0 8px 32px rgba(255,34,68,0.65); transform: translateY(-2px); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 2px solid var(--accent); box-shadow: 0 4px 16px rgba(124,58,237,0.3); }
+  .btn-secondary:hover { background: var(--accent); transform: translateY(-2px); }
+  .btn-gold { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #1a1000; box-shadow: 0 6px 24px rgba(255,215,0,0.4); }
+  .btn-green { background: var(--green); color: #001a0d; box-shadow: 0 6px 24px rgba(0,230,118,0.4); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .card h2 { font-family: var(--font-h); font-size: 1.5rem; margin-bottom: 18px; color: var(--cyan); }
+
+  /* ── INPUTS ── */
+  .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  input[type="text"], input[type="number"] {
+    background: var(--surface2);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: var(--font-b);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 13px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); font-weight: 600; }
+  label { font-size: 0.82rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* ── PIN DISPLAY ── */
+  .pin-display {
+    font-family: var(--font-h);
+    font-size: clamp(2.8rem, 10vw, 4.5rem);
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(255,215,0,0.5), 0 4px 0 #a07000;
+    text-align: center;
+    padding: 10px 0;
+  }
+  .pin-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; text-align: center; margin-bottom: 4px; }
+
+  /* ── TEACHER DASHBOARD ── */
+  #screen-teacher { align-items: stretch; padding: 16px; gap: 14px; max-width: 800px; margin: 0 auto; width: 100%; }
+
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  
+  .qr-code-box {
+    background: #fff;
+    padding: 8px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--accent);
+  }
+  .qr-code-box img { width: 80px; height: 80px; }
+
+  .header-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  
+  .pin-badge {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 8px 18px;
+    text-align: center;
+    border: 2px solid var(--gold);
+  }
+  .pin-badge .pin-n { font-family: var(--font-h); font-size: 1.8rem; color: var(--gold); letter-spacing: 0.15em; }
+  .pin-badge .pin-l { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  .controls-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .timer-control { flex: 1; min-width: 120px; }
+  .timer-control label { display: block; margin-bottom: 6px; }
+  .controls-row .btn { white-space: nowrap; }
+
+  .groups-section { background: var(--surface); border-radius: var(--radius); padding: 16px 20px; border: 1px solid rgba(255,255,255,0.07); flex: 1; }
+  .groups-section h3 { font-family: var(--font-h); font-size: 1.1rem; color: var(--cyan); margin-bottom: 14px; }
+  .groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+
+  .group-card {
+    background: var(--surface2);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: border-color 0.3s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .group-card.winner {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,170,0,0.08));
+    animation: winner-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes winner-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+    50% { box-shadow: 0 0 0 8px rgba(255,215,0,0.2); }
+  }
+  .group-card .avatar-wrap { width: 52px; height: 52px; margin: 0 auto 8px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.15); }
+  .group-card .avatar-wrap img { width: 100%; height: 100%; }
+  .group-card .g-name { font-weight: 800; font-size: 0.9rem; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .group-card .g-count { font-family: var(--font-h); font-size: 2rem; color: var(--red); transition: transform 0.1s; }
+  
+  .winner-crown { position: absolute; top: 6px; right: 8px; font-size: 1.2rem; }
+  .waiting-tag { font-size: 0.72rem; color: var(--muted); font-weight: 700; background: rgba(255,255,255,0.06); border-radius: 6px; padding: 2px 8px; }
+
+  /* ── TIMER BAR ── */
+  .timer-wrap { background: var(--surface); border-radius: var(--radius); padding: 14px 20px; border: 1px solid rgba(255,255,255,0.07); }
+  .timer-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .timer-num { font-family: var(--font-h); font-size: 2rem; color: var(--cyan); }
+  .timer-num.urgent { color: var(--red); animation: urgentPulse 0.5s ease-in-out infinite; }
+  @keyframes urgentPulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+  .timer-bar-bg { background: var(--surface2); border-radius: 50px; height: 12px; overflow: hidden; }
+  .timer-bar-fill { height: 100%; border-radius: 50px; background: linear-gradient(90deg, var(--cyan), var(--accent)); transition: width 1s linear, background 0.5s; }
+  .timer-bar-fill.urgent { background: linear-gradient(90deg, var(--red), #ff6600); }
+
+  /* ── STUDENT ROOM ── */
+  #screen-student { justify-content: flex-start; padding: 0; overflow: hidden; height: 100vh; }
+  .student-layout { width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+  .student-header {
+    background: var(--surface);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  .student-avatar { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); flex-shrink: 0; }
+  .student-avatar img { width: 100%; height: 100%; }
+  .student-name-info { flex: 1; min-width: 0; }
+  .student-name-info .sname { font-weight: 800; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .student-name-info .sroom { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+  .student-click-count { font-family: var(--font-h); font-size: 1.6rem; color: var(--red); min-width: 60px; text-align: right; }
+
+  .student-arena {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .status-badge {
+    background: var(--surface2);
+    border-radius: 50px;
+    padding: 8px 20px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    border: 2px solid rgba(255,255,255,0.08);
+    transition: all 0.3s;
+  }
+  .status-badge.active { color: var(--green); border-color: var(--green); background: rgba(0,230,118,0.1); animation: glowGreen 1.5s ease-in-out infinite; }
+  @keyframes glowGreen { 0%,100% { box-shadow: 0 0 0 0 rgba(0,230,118,0); } 50% { box-shadow: 0 0 0 6px rgba(0,230,118,0.2); } }
+  .status-badge.ended { color: var(--gold); border-color: var(--gold); background: rgba(255,215,0,0.1); }
+
+  /* ── 3D RED BUTTON ── */
+  .button-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+ .big-btn-wrap {
+    position: relative;
+    width: min(240px, 55vw);
+    height: min(240px, 55vw);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation; 
+  }
+
+  .big-btn-shadow {
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 30px;
+    background: radial-gradient(ellipse, rgba(200,0,20,0.5) 0%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(6px);
+    transition: all 0.08s;
+  }
+
+  .big-btn-base {
+    position: absolute;
+    width: 90%;
+    height: 90%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #8b0000 0%, #5a0010 60%, #3a0008 100%);
+    box-shadow: 0 16px 0 #1a0005, 0 20px 40px rgba(0,0,0,0.6);
+  }
+
+  .big-btn-top {
+    position: relative;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ff6680 0%, #ff2244 35%, #cc0022 70%, #880011 100%);
+    box-shadow:
+      0 -4px 8px rgba(255,150,150,0.3) inset,
+      0 6px 12px rgba(0,0,0,0.4) inset,
+      0 0 40px rgba(255,34,68,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    border: 3px solid rgba(255,120,120,0.3);
+  }
+
+  .big-btn-top::before {
+    content: '';
+    position: absolute;
+    top: 15%;
+    left: 20%;
+    width: 35%;
+    height: 20%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.35) 0%, transparent 100%);
+    border-radius: 50%;
+    transform: rotate(-20deg);
+  }
+
+  .big-btn-icon {
+    font-size: min(3.5rem, 10vw);
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+    transition: transform 0.08s;
+    pointer-events: none;
+  }
+
+  .big-btn-wrap.pressing .big-btn-top {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6) inset, 0 0 60px rgba(255,34,68,0.6);
+  }
+  .big-btn-wrap.pressing .big-btn-shadow { width: 85%; opacity: 0.5; }
+  .big-btn-wrap.pressing .big-btn-icon { transform: scale(0.9); }
+
+  .big-btn-wrap.locked .big-btn-top { filter: brightness(0.5) saturate(0.3); cursor: not-allowed; }
+  .big-btn-wrap.locked { cursor: not-allowed; }
+
+  /* ── RESULT BLAST ── */
+  .result-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  .result-overlay.show { opacity: 1; pointer-events: all; }
+  .result-emoji { font-size: clamp(3rem, 15vw, 6rem); animation: bounceIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes bounceIn { 0% { transform: scale(0.3) rotate(-15deg); } 100% { transform: scale(1) rotate(0); } }
+  .result-count { font-family: var(--font-h); font-size: clamp(4rem, 18vw, 8rem); color: var(--gold); text-shadow: 0 0 40px rgba(255,215,0,0.7); animation: countBlast 0.6s 0.2s cubic-bezier(0.34,1.56,0.64,1) both; }
+  @keyframes countBlast { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .result-label { font-weight: 800; font-size: 1rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ── STUDENT TIMER ── */
+  .student-timer { font-family: var(--font-h); font-size: 2.2rem; color: var(--cyan); }
+  .student-timer.urgent { color: var(--red); animation: urgentPulse 0.5s ease-in-out infinite; }
+  .student-timer.hidden { display: none; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { color: var(--muted); font-weight: 700; font-size: 0.9rem; text-align: center; padding: 24px; }
+  /* ── COPYRIGHT FOOTER ── */
+  .copyright-footer {
+    position: fixed;
+    bottom: 12px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+</style>
+
+<script>
+  window.showScreen = (id) => {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+  };
+</script>
+</head>
+<body>
+
+<div id="screen-landing" class="screen active">
+  <div class="logo">🔴 Button <span>Bash</span></div>
+  <p class="tagline">Classroom Button Mashing Battle</p>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="window.showScreen('screen-teacher-setup')">👩‍🏫 Teacher</button>
+    <button class="btn btn-secondary" onclick="window.showScreen('screen-student-join')">🎮 Student</button>
+  </div>
+</div>
+
+<div id="screen-teacher-setup" class="screen">
+  <div class="card">
+    <h2>👩‍🏫 Teacher Setup</h2>
+    <div class="pin-label">Your Room PIN</div>
+    <div class="pin-display" id="setup-pin">----</div>
+    <div style="height:16px"></div>
+    <div class="input-group">
+      <label>Timer Duration (seconds)</label>
+      <input type="number" id="setup-timer" value="10" min="5" max="60">
+    </div>
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1" onclick="window.showScreen('screen-landing')">← Back</button>
+      <button class="btn btn-primary" style="flex:2" id="create-room-btn" onclick="window.createRoom()">Create Room 🚀</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-student-join" class="screen">
+  <div class="card">
+    <h2>🎮 Join Game</h2>
+    <div class="input-group">
+      <label>Room PIN</label>
+      <input type="text" id="join-pin" placeholder="Enter PIN" maxlength="6" style="font-size:1.5rem; text-align:center; letter-spacing:0.2em;">
+    </div>
+    <div class="input-group">
+      <label>Group Name</label>
+      <input type="text" id="join-name" placeholder="e.g. Group A" maxlength="20">
+    </div>
+    <div id="join-error" style="color:#ff6680; font-size:0.85rem; font-weight:700; margin-bottom:10px; display:none;"></div>
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1" onclick="window.showScreen('screen-landing')">← Back</button>
+      <button class="btn btn-primary" style="flex:2" id="join-btn" onclick="window.handleJoin()">Join Room →</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-teacher" class="screen">
+  <div class="dash-header">
+    <div class="header-left">
+      <div class="qr-code-box"><img id="dash-qr" src="" alt="QR Code"></div>
+      <div>
+        <div style="color:var(--muted); font-size:0.75rem; font-weight:800; letter-spacing:0.1em; margin-bottom:4px;">SCAN TO JOIN</div>
+        <div class="pin-badge">
+          <div class="pin-l">Room PIN</div>
+          <div class="pin-n" id="dash-pin">----</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="window.leaveRoom()" style="padding:10px 16px; font-size:0.85rem;">Exit</button>
+  <div class="result-overlay" id="teacher-winner-overlay">
+    <div class="result-emoji" style="font-size: 5rem;">🏆</div>
+    <div class="result-label" style="font-size: 1.5rem; margin-top: 10px;">The Winner is...</div>
+    <div class="winner-name-display" id="winner-name-display">Group Name</div>
+    <div style="font-size: 2.5rem; color:var(--cyan); font-family: var(--font-h); margin-bottom: 30px;" id="winner-score-display">0 Clicks</div>
+    <button class="btn btn-secondary" onclick="document.getElementById('teacher-winner-overlay').classList.remove('show')">ปิดหน้าต่าง</button>
+  </div>
+  </div>
+
+  <div class="timer-wrap" id="timer-section" style="display:none;">
+    <div class="timer-top">
+      <span style="font-weight:800; font-size:0.9rem; color:var(--muted);">⏱ TIME REMAINING</span>
+      <span class="timer-num" id="teacher-timer-num">10</span>
+    </div>
+    <div class="timer-bar-bg">
+      <div class="timer-bar-fill" id="teacher-timer-bar" style="width:100%"></div>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <div class="timer-control">
+      <label>Timer (sec)</label>
+      <input type="number" id="dash-timer-input" value="10" min="5" max="60" style="max-width:100px;">
+    </div>
+    <button class="btn btn-gold" id="start-btn" onclick="window.startGame()">▶ Start Game</button>
+    <button class="btn btn-secondary" id="reset-btn" onclick="window.resetGame()">🔄 Reset</button>
+  </div>
+
+  <div class="groups-section">
+    <h3 id="groups-title">👥 Waiting Room <span id="group-count" style="color:var(--muted);font-size:0.85rem;"></span></h3>
+    <div class="groups-grid" id="groups-grid">
+      <div class="empty-state">No groups yet. Share the PIN or QR!</div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-student" class="screen">
+  <div class="student-layout">
+    <div class="student-header">
+      <div class="student-avatar"><img id="s-avatar" src="" alt="avatar"></div>
+      <div class="student-name-info">
+        <div class="sname" id="s-name">Group Name</div>
+        <div class="sroom">Room <span id="s-room">----</span></div>
+      </div>
+      <div class="student-click-count" id="s-count">0</div>
+    </div>
+
+    <div class="student-arena">
+      <div class="status-badge" id="s-status">⏳ Waiting for teacher…</div>
+      <div class="student-timer hidden" id="s-timer">10</div>
+
+      <div class="button-container">
+        <div class="big-btn-wrap locked" id="big-btn" onclick="window.smash()">
+          <div class="big-btn-base"></div>
+          <div class="big-btn-top">
+            <div class="big-btn-icon">👊</div>
+          </div>
+          <div class="big-btn-shadow"></div>
+        </div>
+      </div>
+
+      <div style="color:var(--muted); font-size:0.85rem; font-weight:700;">TAP THE BUTTON AS FAST AS YOU CAN!</div>
+    </div>
+  </div>
+
+  <div class="result-overlay" id="result-overlay">
+    <div class="result-emoji" id="result-emoji">🎉</div>
+    <div class="result-count" id="result-count">0</div>
+    <div class="result-label">Total Clicks!</div>
+    <div id="result-msg" style="font-weight:800; font-size:1.1rem; color:var(--cyan); margin-top:8px;"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue, remove, push, increment } 
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+// เพิ่มบรรทัดนี้เข้ามาเพื่อใช้ระบบล็อกอินแบบไม่ระบุตัวตน
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// ตรงนี้อย่าลืมเอา firebaseConfig ของโปรเจกต์ใหม่มาใส่นะครับ
+const firebaseConfig = {
+  apiKey: "AIzaSyB2_GYC7fPq7pvMKMeU04UJYSw0UDwagik",
+  authDomain: "redbutton-85993.firebaseapp.com",
+  databaseURL: "https://redbutton-85993-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "redbutton-85993",
+  storageBucket: "redbutton-85993.firebasestorage.app",
+  messagingSenderId: "1024816790225",
+  appId: "1:1024816790225:web:d435d8e9b88f2c5b50e3f0",
+  measurementId: "G-5FZFYF8H1B"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth(app);
+
+let currentRoom = null;
+let currentGroupId = null;
+let currentGroupName = null;
+let isTeacher = false;
+let timerInterval = null;
+let timerDuration = 10;
+let timerRemaining = 10;
+let gamePhase = 'waiting'; 
+let localCount = 0;
+let pendingTeacherPin = null;
+let syncInterval = null;
+let lastSyncedCount = 0;
+let studentTimerInterval = null;
+
+function generatePin() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function avatarUrl(seed) {
+  return `https://api.dicebear.com/8.x/fun-emoji/svg?seed=${encodeURIComponent(seed)}&size=80`;
+}
+
+function getRoomRef(pin) { return ref(db, `rooms/${pin}`); }
+function getGroupsRef(pin) { return ref(db, `rooms/${pin}/groups`); }
+function getGroupRef(pin, gid) { return ref(db, `rooms/${pin}/groups/${gid}`); }
+
+// ── TEACHER: CREATE ROOM ──
+window.createRoom = async () => {
+  // 1. เพิ่มการเช็คล็อกอินเผื่อเน็ตช้า (แบบเดียวกับฝั่งเด็ก)
+  if (!auth.currentUser) {
+    alert("กำลังเตรียมระบบหลังบ้านให้คุณครู โปรดรอสักครู่แล้วกดใหม่ครับ");
+    return;
+  }
+
+  const pin = pendingTeacherPin;
+  const td = parseInt(document.getElementById('setup-timer').value) || 10;
+  const btn = document.getElementById('create-room-btn');
+  
+  btn.textContent = 'Creating...';
+  btn.disabled = true;
+
+  try {
+    // 2. เพิ่ม teacherUid เข้าไปในข้อมูลห้อง
+    await set(getRoomRef(pin), { 
+      pin, 
+      timerDuration: td, 
+      phase: 'waiting', 
+      createdAt: Date.now(),
+      teacherUid: auth.currentUser.uid // 👈 เพิ่มบรรทัดนี้!
+    });
+    
+    // ... (โค้ดส่วนที่เหลือปล่อยไว้เหมือนเดิม) ...
+    
+    currentRoom = pin;
+    timerDuration = td;
+    isTeacher = true;
+    document.getElementById('dash-pin').textContent = pin;
+    document.getElementById('dash-timer-input').value = td;
+    
+    const currentUrl = window.location.origin + window.location.pathname;
+    const joinUrl = `${currentUrl}?pin=${pin}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(joinUrl)}&color=000000&bgcolor=ffffff`;
+    document.getElementById('dash-qr').src = qrUrl;
+
+    window.showScreen('screen-teacher');
+    listenTeacher(pin);
+  } catch (error) {
+    alert("❌ ไม่สามารถสร้างห้องได้ โปรดตรวจสอบว่ารันผ่านเว็บไซต์จริงๆ (ไม่ใช่ file://) หรือเช็คสิทธิ์ Firebase ครับ\n" + error.message);
+  } finally {
+    btn.textContent = 'Create Room 🚀';
+    btn.disabled = false;
+  }
+};
+
+window.leaveRoom = () => {
+  clearInterval(timerInterval);
+  if (currentRoom && isTeacher) remove(getRoomRef(currentRoom));
+  currentRoom = null; currentGroupId = null; isTeacher = false;
+  
+  pendingTeacherPin = generatePin();
+  document.getElementById('setup-pin').textContent = pendingTeacherPin;
+  window.showScreen('screen-landing');
+};
+
+window.kickGroup = async (gid) => {
+  if (!currentRoom || !isTeacher) return;
+  if (confirm('ต้องการลบกลุ่มนี้ออกจากห้องใช่หรือไม่?')) {
+    try {
+      await remove(getGroupRef(currentRoom, gid));
+    } catch(e) {
+      alert("ไม่สามารถลบได้: " + e.message);
+    }
+  }
+};
+
+function listenTeacher(pin) {
+  onValue(getGroupsRef(pin), snap => {
+    const groups = snap.val() || {};
+    renderGroups(groups);
+  });
+  onValue(ref(db, `rooms/${pin}/phase`), snap => {
+    const ph = snap.val();
+    if (ph) gamePhase = ph;
+  });
+}
+
+function renderGroups(groups) {
+  const grid = document.getElementById('groups-grid');
+  const keys = Object.keys(groups);
+  document.getElementById('group-count').textContent = keys.length ? `(${keys.length})` : '';
+  
+  if (!keys.length) { 
+    grid.innerHTML = '<div class="empty-state">No groups yet. Share the PIN or QR!</div>'; 
+    return; 
+  }
+
+  let winner = null;
+  if (gamePhase === 'ended') {
+    let max = -1;
+    keys.forEach(k => { if ((groups[k].clicks||0) > max) { max = groups[k].clicks||0; winner = k; } });
+  }
+
+  let missingScore = false;
+  keys.forEach(k => {
+    if (!document.getElementById(`gc-${k}`)) missingScore = true;
+  });
+
+  if (gamePhase === 'playing' && grid.children.length === keys.length && !missingScore) {
+    keys.forEach(k => {
+      const countEl = document.getElementById(`gc-${k}`);
+      if (countEl) countEl.textContent = groups[k].clicks || 0;
+    });
+    return; 
+  }
+
+  grid.innerHTML = keys.map(k => {
+    const g = groups[k];
+    const isWinner = gamePhase === 'ended' && k === winner;
+    const deleteBtn = gamePhase === 'waiting' 
+      ? `<button class="btn-delete" onclick="window.kickGroup('${k}')" title="ลบกลุ่มนี้">✖</button>` 
+      : '';
+
+    return `<div class="group-card ${isWinner ? 'winner' : ''}">
+      ${deleteBtn}
+      ${isWinner ? '<div class="winner-crown">👑</div>' : ''}
+      <div class="avatar-wrap"><img src="${avatarUrl(g.name || k)}" alt="avatar"></div>
+      <div class="g-name">${g.name || 'Group'}</div>
+      ${gamePhase === 'waiting'
+        ? '<div class="waiting-tag">Waiting…</div>'
+        : `<div class="g-count" id="gc-${k}">${g.clicks || 0}</div>`
+      }
+    </div>`;
+  }).join('');
+}
+
+window.startGame = async () => {
+  if (!currentRoom) return;
+  const td = parseInt(document.getElementById('dash-timer-input').value) || 10;
+  timerDuration = td;
+  timerRemaining = td;
+  gamePhase = 'playing';
+
+  const snap = await get(getGroupsRef(currentRoom));
+  const groups = snap.val() || {};
+  const updates = {};
+  Object.keys(groups).forEach(k => { updates[`rooms/${currentRoom}/groups/${k}/clicks`] = 0; });
+  updates[`rooms/${currentRoom}/phase`] = 'playing';
+  updates[`rooms/${currentRoom}/timerDuration`] = td;
+  updates[`rooms/${currentRoom}/timerStart`] = Date.now();
+  await update(ref(db), updates);
+
+  document.getElementById('timer-section').style.display = 'block';
+  document.getElementById('start-btn').disabled = true;
+  startTeacherTimer(td);
+};
+
+function startTeacherTimer(duration) {
+  clearInterval(timerInterval);
+  timerRemaining = duration;
+  updateTimerUI(timerRemaining, duration);
+  timerInterval = setInterval(async () => {
+    timerRemaining--;
+    updateTimerUI(timerRemaining, duration);
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      await update(getRoomRef(currentRoom), { phase: 'ended' });
+      gamePhase = 'ended';
+      document.getElementById('start-btn').disabled = false;
+      showTeacherWinnerPopup(); 
+    }
+  }, 1000);
+}
+
+async function showTeacherWinnerPopup() {
+  const snap = await get(getGroupsRef(currentRoom));
+  const groups = snap.val() || {};
+  let max = -1;
+  let winnerName = 'No Data';
+  
+  Object.keys(groups).forEach(k => {
+    if ((groups[k].clicks || 0) > max) {
+      max = groups[k].clicks || 0;
+      winnerName = groups[k].name || 'Unknown Group';
+    }
+  });
+
+  if (max > 0) {
+    document.getElementById('winner-name-display').textContent = winnerName;
+    document.getElementById('winner-score-display').textContent = max + ' Clicks!';
+    document.getElementById('teacher-winner-overlay').classList.add('show');
+  }
+}
+
+function updateTimerUI(remaining, total) {
+  const numEl = document.getElementById('teacher-timer-num');
+  const barEl = document.getElementById('teacher-timer-bar');
+  if (!numEl) return;
+  numEl.textContent = remaining;
+  const pct = (remaining / total) * 100;
+  barEl.style.width = pct + '%';
+  if (remaining <= 3) { numEl.classList.add('urgent'); barEl.classList.add('urgent'); } 
+  else { numEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }
+}
+
+window.resetGame = async () => {
+  if (!currentRoom) return;
+  clearInterval(timerInterval);
+  gamePhase = 'waiting';
+  document.getElementById('timer-section').style.display = 'none';
+  document.getElementById('start-btn').disabled = false;
+
+  const snap = await get(getGroupsRef(currentRoom));
+  const groups = snap.val() || {};
+  const updates = {};
+  Object.keys(groups).forEach(k => { updates[`rooms/${currentRoom}/groups/${k}/clicks`] = 0; });
+  updates[`rooms/${currentRoom}/phase`] = 'waiting';
+  await update(ref(db), updates);
+};
+
+// ── STUDENT: JOIN ──
+window.handleJoin = async () => {
+  const pin = document.getElementById('join-pin').value.trim();
+  const name = document.getElementById('join-name').value.trim();
+  const joinBtn = document.getElementById('join-btn');
+  const errEl = document.getElementById('join-error');
+  errEl.style.display = 'none';
+
+  if (!pin || !name) {
+    errEl.textContent = '❌ โปรดกรอกทั้ง PIN และชื่อกลุ่มให้ครบถ้วน';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  joinBtn.disabled = true;
+  joinBtn.textContent = 'Joining...';
+  
+  try {
+    const snap = await get(getRoomRef(pin));
+    if (!snap.exists()) {
+      errEl.textContent = '❌ ไม่พบห้องนี้ โปรดเช็ค PIN อีกครั้ง!';
+      errEl.style.display = 'block';
+      joinBtn.disabled = false;
+      joinBtn.textContent = 'Join Room →';
+      return;
+    }
+    await joinRoom(pin, name);
+  } catch(error) {
+    errEl.textContent = '❌ เชื่อมต่อไม่สำเร็จ: ' + error.message;
+    errEl.style.display = 'block';
+  }
+
+  joinBtn.disabled = false;
+  joinBtn.textContent = 'Join Room →';
+};
+
+async function joinRoom(pin, name) {
+  // เช็คก่อนว่ามี currentUser หรือยัง ถ้ายังให้รอแป๊บนึง
+  if (!auth.currentUser) {
+    alert("กำลังเชื่อมต่อระบบรักษาความปลอดภัย โปรดรอสักครู่แล้วกดใหม่ครับ");
+    return;
+  }
+
+  const gRef = push(getGroupsRef(pin));
+  const gid = gRef.key;
+  const userUid = auth.currentUser.uid; // ตอนนี้มั่นใจได้ว่ามี UID แน่นอน
+  
+  // บันทึก UID ลงไปด้วย
+  await set(gRef, { name, clicks: 0, joinedAt: Date.now(), uid: userUid }); 
+  
+  currentRoom = pin;
+  currentGroupId = gid;
+  currentGroupName = name;
+  localCount = 0;
+
+  document.getElementById('s-name').textContent = name;
+  document.getElementById('s-room').textContent = pin;
+  document.getElementById('s-avatar').src = avatarUrl(name);
+  document.getElementById('s-count').textContent = '0';
+  window.showScreen('screen-student');
+  listenStudent(pin, gid);
+}
+
+// 🚨 ปรับปรุงลอจิกรับส่งข้อมูลฝั่งนักเรียนให้เบาขึ้น ไม่รับคะแนนกลุ่มอื่น 🚨
+function listenStudent(pin, gid) {
+  onValue(ref(db, `rooms/${pin}/phase`), async (snap) => {
+    const ph = snap.val();
+    if (!ph) return;
+
+    if (ph === 'playing') {
+      if (gamePhase !== 'playing') { 
+        gamePhase = ph;
+        unlockButton();
+        
+        const roomSnap = await get(ref(db, `rooms/${pin}`));
+        const room = roomSnap.val();
+        
+        const td = room?.timerDuration || 10;
+        const start = room?.timerStart || Date.now();
+        const elapsed = Math.floor((Date.now() - start) / 1000);
+        
+        startStudentTimer(Math.max(0, td - elapsed), td);
+      }
+    } else if (ph === 'ended') {
+      if (gamePhase !== 'ended') {
+        gamePhase = ph;
+        lockButton();
+        showStudentResult();
+      }
+    } else if (ph === 'waiting') {
+      if (gamePhase !== 'waiting') {
+        gamePhase = ph;
+        resetStudentUI();
+      }
+    }
+  });
+
+  onValue(getGroupRef(pin, gid), snap => {
+    const g = snap.val();
+    if (g) {
+      if (gamePhase !== 'playing' || g.clicks === 0) {
+        localCount = g.clicks || 0;
+        lastSyncedCount = localCount;
+        document.getElementById('s-count').textContent = localCount;
+      }
+    }
+  });
+}
+
+function unlockButton() {
+  const btn = document.getElementById('big-btn');
+  btn.classList.remove('locked');
+  document.getElementById('s-status').textContent = '🔥 GO GO GO!';
+  document.getElementById('s-status').className = 'status-badge active';
+  document.getElementById('result-overlay').classList.remove('show');
+}
+
+function lockButton() {
+  const btn = document.getElementById('big-btn');
+  btn.classList.add('locked');
+  document.getElementById('s-status').textContent = '⏱ Time\'s Up!';
+  document.getElementById('s-status').className = 'status-badge ended';
+  document.getElementById('s-timer').classList.add('hidden');
+  
+  clearInterval(syncInterval);
+  syncInterval = null;
+}
+
+function resetStudentUI() {
+  localCount = 0;
+  lastSyncedCount = 0;
+  clearInterval(syncInterval);
+  syncInterval = null;
+  document.getElementById('s-count').textContent = '0';
+  document.getElementById('big-btn').classList.add('locked');
+  document.getElementById('s-status').textContent = '⏳ Waiting for teacher…';
+  document.getElementById('s-status').className = 'status-badge';
+  document.getElementById('s-timer').classList.add('hidden');
+  document.getElementById('result-overlay').classList.remove('show');
+  clearInterval(studentTimerInterval);
+}
+
+function startStudentTimer(remaining, total) {
+  clearInterval(studentTimerInterval);
+  const timerEl = document.getElementById('s-timer');
+  timerEl.classList.remove('hidden');
+  timerEl.textContent = remaining;
+  studentTimerInterval = setInterval(() => {
+    remaining--;
+    timerEl.textContent = Math.max(0, remaining);
+    if (remaining <= 3) timerEl.classList.add('urgent');
+    if (remaining <= 0) clearInterval(studentTimerInterval);
+  }, 1000);
+}
+
+function showStudentResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('result-count').textContent = localCount;
+  document.getElementById('result-emoji').textContent = localCount > 30 ? '🏆' : localCount > 15 ? '🎉' : '👏';
+  document.getElementById('result-msg').textContent = localCount > 25 ? 'Amazing! 🔥' : localCount > 10 ? 'Nice work!' : 'Keep it up!';
+  overlay.classList.add('show');
+}
+
+// ── SMASH ──
+window.smash = () => {
+  if (gamePhase !== 'playing') return;
+  const btn = document.getElementById('big-btn');
+  if (btn.classList.contains('locked')) return;
+
+  btn.classList.add('pressing');
+  setTimeout(() => btn.classList.remove('pressing'), 150);
+  
+  localCount++;
+  document.getElementById('s-count').textContent = localCount;
+
+if (!syncInterval) {
+    syncInterval = setInterval(async () => {
+      if (localCount > lastSyncedCount && currentRoom && currentGroupId) {
+        const clicksToAdd = localCount - lastSyncedCount; 
+        try {
+          await update(ref(db, `rooms/${currentRoom}/groups/${currentGroupId}`), {
+            clicks: increment(clicksToAdd)
+          });
+          lastSyncedCount = localCount;
+        } catch(e) {
+          console.error("ส่งคะแนนไม่ผ่าน:", e);
+        }
+      }
+    }, 500);
+  }
+};
+
+// ── INIT SETUP ──
+window.addEventListener('load', () => {
+  // สั่งให้ล็อกอินแบบซ่อนรูปทันทีที่เปิดเว็บ
+  signInAnonymously(auth).catch((error) => {
+    console.error("ล็อกอินไม่สำเร็จ:", error);
+  });
+
+  pendingTeacherPin = generatePin();
+  document.getElementById('setup-pin').textContent = pendingTeacherPin;
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const scannedPin = urlParams.get('pin');
+  if (scannedPin) {
+    document.getElementById('join-pin').value = scannedPin;
+    window.showScreen('screen-student-join');
+  }
+
+  const btn = document.getElementById('big-btn');
+  
+  btn.addEventListener('touchstart', (e) => {
+    if (gamePhase === 'playing') e.preventDefault(); 
+    window.smash();
+  }, { passive: false });
+
+  btn.addEventListener('mousedown', (e) => {
+    if (e.button === 0) window.smash(); 
+  });
+});
+</script>
+  <div class="copyright-footer">© Created by SUKI SUPAKON KEANCHA</div>
+</body>
+</html>
