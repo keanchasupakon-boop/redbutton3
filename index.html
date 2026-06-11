@@ -778,7 +778,11 @@ function startTeacherTimer(duration) {
       await update(getRoomRef(currentRoom), { phase: 'ended' });
       gamePhase = 'ended';
       document.getElementById('start-btn').disabled = false;
-      showTeacherWinnerPopup(); 
+      
+      // 🟢 แก้ไขส่วนนี้: หน่วงเวลา 1.5 วินาที ให้เน็ตส่งคะแนนชุดสุดท้ายมาถึงเซิร์ฟเวอร์ก่อน
+      setTimeout(() => {
+        showTeacherWinnerPopup(); 
+      }, 1500);
     }
   }, 1000);
 }
@@ -916,11 +920,15 @@ function listenStudent(pin, gid) {
         
         startStudentTimer(Math.max(0, td - elapsed), td);
       }
-    } else if (ph === 'ended') {
+	} else if (ph === 'ended') {
       if (gamePhase !== 'ended') {
         gamePhase = ph;
         lockButton();
-        showStudentResult();
+        
+        // 🟢 แก้ไขส่วนนี้: หน่วงเวลาเด้ง Popup ฝั่งเด็กให้รอ 1.5 วินาที จะได้เด้งพร้อมจอครู
+        setTimeout(() => {
+          showStudentResult();
+        }, 1500);
       }
     } else if (ph === 'waiting') {
       if (gamePhase !== 'waiting') {
@@ -968,7 +976,16 @@ function lockButton() {
   
   clearInterval(syncInterval);
   syncInterval = null;
-}
+
+  // 🟢 บังคับส่งคะแนนที่ค้างอยู่ (ก๊อกสุดท้าย) ทันทีที่หมดเวลา
+  if (localCount > lastSyncedCount && currentRoom && currentGroupId) {
+    const clicksToAdd = localCount - lastSyncedCount;
+    lastSyncedCount += clicksToAdd;
+    update(ref(db, `rooms/${currentRoom}/groups/${currentGroupId}`), {
+      clicks: increment(clicksToAdd)
+    }).catch(e => console.error("ส่งคะแนนสุดท้ายไม่ผ่าน:", e));
+  }
+} // ปิดฟังก์ชันอย่างถูกต้อง
 
 function resetStudentUI() {
   localCount = 0;
